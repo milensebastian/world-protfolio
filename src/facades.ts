@@ -49,7 +49,7 @@ export function decorateFacade(add:Add,box:Box,ball:Ball,x:number,z:number,w:num
   const archZ=front+facing*.13
   const arch=new T.CircleGeometry(.61,20,0,Math.PI);add(arch,'#52767a',x,1.92,archZ,0,facing<0?Math.PI:0)
   for(let i=0;i<9;i++){const a=(i+.5)*Math.PI/9;add(new T.BoxGeometry(.26,.21,.19),'#e1cfab',x+.68*Math.cos(a),1.92+.68*Math.sin(a),archZ,0,0,a-Math.PI/2)}
-  box(x,1.08,archZ,.78,1.42,.07,'#85654a');box(x,1.11,archZ+facing*.06,.67,.09,.1,timber);ball(x+.25,1.1,archZ+facing*.12,.045,.045,.045,'#d9af63')
+  if(index!==0){box(x,1.08,archZ,.78,1.42,.07,'#85654a');box(x,1.11,archZ+facing*.06,.67,.09,.1,timber);ball(x+.25,1.1,archZ+facing*.12,.045,.045,.045,'#d9af63')}
   if(index%3===0){
     const floor=h-.75,bz=front+facing*.56
     box(x,floor,bz,2.7,.14,1.06,timber);box(x,floor+.68,bz+facing*.47,2.76,.1,.11,shutters)

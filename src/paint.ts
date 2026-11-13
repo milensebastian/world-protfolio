@@ -1,3 +1,4 @@
+import {villageRise} from './geography'
 import * as T from 'three'
 
 export function seeded(seed: number) {
@@ -41,13 +42,15 @@ export function plaza(scene: T.Scene) {
   function lay(g:T.BufferGeometry,y:number){
     g.rotateX(-Math.PI/2)
     const uv=g.attributes.uv,points=g.attributes.position
-    for(let i=0;i<uv.count;i++)uv.setXY(i,points.getX(i)/4.5,points.getZ(i)/4.5)
+    for(let i=0;i<uv.count;i++){const x=points.getX(i),z=points.getZ(i);points.setY(i,villageRise(x,z));uv.setXY(i,x/4.5,z/4.5)}
+    g.computeVertexNormals()
     const mesh=new T.Mesh(g,mat);mesh.position.y=y;mesh.receiveShadow=true;scene.add(mesh)
   }
-  lay(new T.PlaneGeometry(81,5.85),.037)
-  lay(new T.PlaneGeometry(5.85,81),.043)
-  lay(new T.CircleGeometry(10.88,96),.14)
+  lay(new T.PlaneGeometry(72,5.85,96,8),.037)
+  lay(new T.PlaneGeometry(5.85,72,8,96),.043)
+  lay(new T.RingGeometry(.001,10.88,96,20),.14)
   const rim=new T.RingGeometry(9.85,10.07,96);rim.rotateX(-Math.PI/2)
+  const pp=rim.attributes.position;for(let i=0;i<pp.count;i++)pp.setY(i,villageRise(pp.getX(i),pp.getZ(i)))
   const band=new T.Mesh(rim,new T.MeshToonMaterial({color:'#9cae9e'}));band.position.y=.144;band.receiveShadow=true;scene.add(band)
 }
 
@@ -76,11 +79,11 @@ export function atmosphere(scene:T.Scene) {
   }
   const sky=new T.CanvasTexture(canvas);sky.colorSpace=T.SRGBColorSpace;sky.wrapS=T.RepeatWrapping
   const dome=new T.Mesh(new T.SphereGeometry(150,48,24),new T.MeshBasicMaterial({map:sky,side:T.BackSide,fog:false,depthWrite:false}))
-  dome.scale.y=.56;dome.position.y=20;dome.renderOrder=-10;scene.add(dome)
+  dome.onBeforeRender=()=>{dome.rotation.y=performance.now()*.0000015};dome.scale.y=.56;dome.position.y=20;dome.renderOrder=-10;scene.add(dome)
   scene.add(new T.HemisphereLight('#fff5df','#c3c6b6',1.3))
   const sun=new T.DirectionalLight('#fff0cd',2.05)
   sun.position.set(-26,39,23);sun.castShadow=true
   Object.assign(sun.shadow.camera,{left:-43,right:43,top:43,bottom:-43})
-  sun.shadow.mapSize.set(1024,1024);sun.shadow.bias=-.00035;sun.shadow.normalBias=.035
+  sun.shadow.mapSize.set(1024,1024);sun.shadow.bias=-.00035;sun.shadow.normalBias=.032
   scene.add(sun)
 }

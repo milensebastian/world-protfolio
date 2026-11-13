@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import './journal.css'
 
-type Props = { mode: 'journal' | 'dialogue'; district: number; speaker?: string; onClose: () => void; initialTab?: string }
+type Props = { mode: 'journal' | 'project'; district: number; initialProject?: number; onClose: () => void; initialTab?: string }
 const tabs = ['About', 'Projects', 'Education', 'Contact']
 const portfolio = 'https://milen.vercel.app/'
 const projects = [
@@ -9,48 +9,29 @@ const projects = [
   {name: 'AETHIRIA', summary: 'Sculpt particles with your hands', text: 'MediaPipe tracks hand landmarks and Three.js translates their movement into a particle field. Try moving the field’s center and changing its spread here, or open the live project for camera-based gestures.', stack: 'MediaPipe · Three.js · Gesture tracking', live: 'https://aethiria-woad.vercel.app/', repo: 'https://github.com/milensebastian/AETHIRIA'},
   {name: 'FORGE', summary: 'A workspace between peers', text: 'A collaborative coding workspace uses WebRTC data channels to carry edits between browsers. Connect two local peers below, then type to see your edit travel through a real data channel.', stack: 'WebRTC · Data channels · Collaborative editing', live: 'https://forge-p2p.vercel.app', repo: 'https://github.com/milensebastian/forge-p2p'}
 ]
-const districtNames = ['Origin Square','Cybersecurity Quarter','Innovation District','Knowledge Campus','Personal Garden']
-const conversations = [
-  ['Town guide','Welcome to Origin Square! I can point you toward the workshops, or tell you about the person who built this place.','Where should I start?','Walk east to the security lab to uncover a hidden message. South of the fountain, the workshop has a particle experiment and a pair of linked terminals.','Meet Milen','About'],
-  ['Lab scientist','See that little landscape on my desk? It arrived with a message tucked into its pixels. Want to read it?','How does that work?','A pixel has red, green and blue channels. Changing the smallest bit of a channel barely shifts its color. A string of those bits can store a note.','Inspect StegoVault','Projects'],
-  ['Workshop engineer','Careful with the particles. Last time someone waved hello, the whole constellation moved.','What else are you building?','Across the bench is FORGE. Link the two terminals and edits travel straight from one peer to the other.','Visit the workbench','Projects'],
-  ['Campus librarian','The exhibition shelf is open. We keep Milen’s coursework and competition notes here.','What’s on display?','The team placed third in the CYA Quest capture-the-flag competition. There are also notes from a digital forensics workshop and a cybersecurity foundations course.','Read the campus record','Education'],
-  ['Garden keeper','The bench by the water is a good place to sketch out a new idea. You can reach Milen from here, too.','What inspires the garden?','Small experiments often start with a simple question. This garden gives the town a quiet place to stop and ask one.','Find Milen','Contact']
-]
 function Link({href,children}:{href:string; children:React.ReactNode}) {
   return <a className="jr-link" href={href} target="_blank" rel="noreferrer">{children} <span aria-hidden="true">↗</span></a>
 }
-const localStories:Record<string,string[]> = {
-  'Street cleaner':['Street cleaner','Morning! Mind the little pile. The wind and I have been negotiating over it all day.','Who is winning?','The wind has the east lane. I still have this square.','Meet Milen','About'],
-  'Market baker':['Market baker','The first tray is out. The florist trades me a fresh bouquet for a loaf each morning.','What is today’s special?','A cinnamon twist. One of the couriers insists it makes the bicycle go faster.','Meet Milen','About'],
-  'Cycle mechanic':['Cycle mechanic','I take a lap down the east lane to listen for rattles.','How does it sound?','One cheerful bell, two spinning wheels, and half a loaf bouncing in the basket.','Visit the workbench','Projects'],
-  'Town courier':['Town courier','I have a delivery for the cartographer. The address is drawn as a tiny picture of his own shop.','Any advice for exploring?','Circle the fountain on the cobbles and take the east road to the lab.','Read the journal','About'],
-  'Florist':['Florist','I bring flowers to the bread stall before the square gets busy.','What is in the bouquet?','Garden roses for the window and rosemary for the baker.','Read the journal','About']
-}
-export default function Journal({mode,district,speaker,onClose,initialTab='About'}:Props) {
+export default function Journal({mode,district,initialProject=0,onClose,initialTab='About'}:Props) {
   const [tab,setTab]=useState(tabs.find(x=>x.toLowerCase()===initialTab.toLowerCase()) || (initialTab.toLowerCase()==='resume'?'Education':'About'))
-  const [chat,setChat]=useState(mode==='dialogue')
-  const [reply,setReply]=useState(false)
-  const [project,setProject]=useState(district===2?1:0)
+  const dedicated=mode==='project'
+  const [project,setProject]=useState(dedicated?initialProject:district===2?1:0)
   const modal=useRef<HTMLDialogElement>(null)
-  const index=districtNames[district]?district:0
-  const [name,greeting,question,answer,action,destination]=localStories[speaker||'']||conversations[index]
   useEffect(()=>{
     const d=modal.current, previous=document.activeElement as HTMLElement|null
     d?.showModal()
     return ()=>{d?.close(); previous?.focus()}
   },[])
-  return <dialog ref={modal} className={'jr-dialog'+(chat?' jr-chat':'')} aria-labelledby="jr-title" onCancel={e=>{e.preventDefault();onClose()}} onClick={e=>{if(e.target===modal.current){const box=modal.current.getBoundingClientRect();if(e.clientX<box.left||e.clientX>box.right||e.clientY<box.top||e.clientY>box.bottom)onClose()}}}>
-    <div className="jr-head"><span className="jr-meta">{chat?districtNames[index]:'Portfolio World / Field journal'}</span><button className="jr-close" onClick={onClose} aria-label="Close journal">×</button></div>
-    {chat?<section className="jr-inner"><h2 id="jr-title">{speaker||name}</h2><p className="jr-speech" aria-live="polite">{reply?answer:greeting}</p><div className="jr-actions">{!reply&&<button onClick={()=>setReply(true)}>{question}</button>}<button onClick={()=>{setTab(destination);setChat(false)}}>{action} →</button><button onClick={onClose}>Back to exploring</button></div></section>:<>
-    <h2 id="jr-title" className="jr-title">Field journal</h2>
-    <nav className="jr-tabs" aria-label="Journal sections">{tabs.map(t=><button key={t} aria-current={tab===t?'page':undefined} onClick={()=>setTab(t)}>{t}</button>)}</nav>
+  return <dialog ref={modal} className={'jr-dialog'+(dedicated?' jr-project-panel':'')} aria-labelledby="jr-title" onCancel={e=>{e.preventDefault();onClose()}} onClick={e=>{if(e.target===modal.current){const box=modal.current.getBoundingClientRect();if(e.clientX<box.left||e.clientX>box.right||e.clientY<box.top||e.clientY>box.bottom)onClose()}}}>
+    <div className="jr-head"><span className="jr-meta">{dedicated?(initialProject===0?'StegoVault Lab':'Innovation Workshop'):'Portfolio World / Field journal'}</span><button className="jr-close" onClick={onClose} aria-label={dedicated?'Close project':'Close journal'}>×</button></div>
+    <h2 id="jr-title" className="jr-title">{dedicated?projects[project].name:'Field journal'}</h2>
+    {!dedicated&&<nav className="jr-tabs" aria-label="Journal sections">{tabs.map(t=><button key={t} aria-current={tab===t?'page':undefined} onClick={()=>setTab(t)}>{t}</button>)}</nav>}
     <section className="jr-inner" key={tab}>
-    {tab==='About'&&<><span className="jr-meta">The creator</span><h3>Milen Sebastian</h3><p className="jr-lede">Cybersecurity student and builder from Kerala, India.</p><p>I explore how information stays private, how people create together, and how a gesture can become an interface. Those questions run through the projects you’ll find in this town.</p><div className="jr-actions"><button onClick={()=>setTab('Projects')}>Explore my projects →</button><Link href={portfolio}>Original portfolio</Link></div></>}
-    {tab==='Education'&&<><span className="jr-meta">Knowledge Campus</span><h3>Education &amp; experience</h3><dl className="jr-record"><dt>B.Tech in Cyber Security</dt><dd>St. Joseph’s College of Engineering and Technology, Palai</dd><dt>Foundations of Cybersecurity</dt><dd>Google · June 2026</dd><dt>CYA Quest</dt><dd>Third place with my team in the Cyber Security Association’s capture-the-flag competition.</dd><dt>Digital forensics</dt><dd>Participated in Trazada: The Last Trace, a cyber forensics workshop by Offenso Hackers Academy.</dd></dl><Link href="https://www.linkedin.com/in/milensebastian/">Professional profile</Link></>}
-    {tab==='Contact'&&<><span className="jr-meta">Personal Garden</span><h3>Get in touch</h3><p>Have a project, a collaboration, or a question about something you found in town? Send me a message through my portfolio or connect on LinkedIn.</p><div className="jr-actions"><Link href={portfolio+'#contact'}>Contact Milen</Link><Link href="https://www.linkedin.com/in/milensebastian/">LinkedIn</Link><Link href="https://github.com/milensebastian">GitHub</Link></div></>}
-    {tab==='Projects'&&<><div className="jr-projects" aria-label="Select project">{projects.map((p,i)=><button key={p.name} aria-pressed={project===i} onClick={()=>setProject(i)}>{p.name}</button>)}</div><h3>{projects[project].summary}</h3><p>{projects[project].text}</p><p className="jr-meta">{projects[project].stack}</p>{project===0?<Stego/>:project===1?<Particles/>:<Peers/>}<div className="jr-actions">{projects[project].live&&<Link href={projects[project].live}>Live project</Link>}{projects[project].repo&&<Link href={projects[project].repo}>Source code</Link>}</div></>}
-    </section></>}
+    {!dedicated&&tab==='About'&&<><span className="jr-meta">The creator</span><h3>Milen Sebastian</h3><p className="jr-lede">Cybersecurity student and builder from Kerala, India.</p><p>I explore how information stays private, how people create together, and how a gesture can become an interface. Those questions run through the projects you’ll find in this town.</p><div className="jr-actions"><button onClick={()=>setTab('Projects')}>Explore my projects →</button><Link href={portfolio}>Original portfolio</Link></div></>}
+    {!dedicated&&tab==='Education'&&<><span className="jr-meta">Knowledge Campus</span><h3>Education &amp; experience</h3><dl className="jr-record"><dt>B.Tech in Cyber Security</dt><dd>St. Joseph’s College of Engineering and Technology, Palai</dd><dt>Foundations of Cybersecurity</dt><dd>Google · June 2026</dd><dt>CYA Quest</dt><dd>Third place with my team in the Cyber Security Association’s capture-the-flag competition.</dd><dt>Digital forensics</dt><dd>Participated in Trazada: The Last Trace, a cyber forensics workshop by Offenso Hackers Academy.</dd></dl><Link href="https://www.linkedin.com/in/milensebastian/">Professional profile</Link></>}
+    {!dedicated&&tab==='Contact'&&<><span className="jr-meta">Personal Garden</span><h3>Get in touch</h3><p>Have a project, a collaboration, or a question about something you found in town? Send me a message through my portfolio or connect on LinkedIn.</p><div className="jr-actions"><Link href={portfolio+'#contact'}>Contact Milen</Link><Link href="https://www.linkedin.com/in/milensebastian/">LinkedIn</Link><Link href="https://github.com/milensebastian">GitHub</Link></div></>}
+    {(dedicated||tab==='Projects')&&<>{(!dedicated||initialProject===1)&&<div className="jr-projects" aria-label="Select project">{projects.map((p,i)=>(!dedicated||i>0)&&<button key={p.name} aria-pressed={project===i} onClick={()=>setProject(i)}>{p.name}</button>)}</div>}<h3>{projects[project].summary}</h3><p>{projects[project].text}</p><p className="jr-meta">{projects[project].stack}</p>{project===0?<Stego/>:project===1?<Particles/>:<Peers/>}<div className="jr-actions">{projects[project].live&&<Link href={projects[project].live}>Live project</Link>}{projects[project].repo&&<Link href={projects[project].repo}>Source code</Link>}</div></>}
+    </section>
   </dialog>
 }
 function Stego(){

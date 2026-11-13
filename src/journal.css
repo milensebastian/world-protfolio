@@ -1,0 +1,38 @@
+.jr-dialog{position:fixed;inset:0;box-sizing:border-box;width:min(650px,calc(100% - 32px));max-height:min(86dvh,850px);margin:auto;padding:0;border:1px solid #8c8873;border-radius:12px;background:#f8f4e8;color:#27352f;box-shadow:0 24px 80px #13252266;text-align:left;font:16px/1.55 "DM Sans",Arial,sans-serif;overflow:auto;overscroll-behavior:contain;color-scheme:light}
+.jr-dialog::backdrop{background:#101f29ad;backdrop-filter:blur(5px)}
+.jr-dialog *{box-sizing:border-box}
+.jr-head{display:flex;justify-content:space-between;align-items:center;padding:17px 28px 8px;gap:12px}
+.jr-dialog .jr-meta{font:700 10px/1.7 "IBM Plex Mono",Consolas,monospace;letter-spacing:.13em;text-transform:uppercase;color:#67664f}
+.jr-dialog button,.jr-dialog a{cursor:pointer;touch-action:manipulation;font-family:inherit}
+.jr-dialog .jr-close{font:24px/1 Arial,sans-serif;width:40px;height:40px;border:1px solid #b9baa8;border-radius:50%;background:transparent;color:#344438;flex-shrink:0}
+.jr-dialog h2,.jr-dialog h3{font-family:Georgia,"Times New Roman",serif;letter-spacing:-.045em;line-height:1.08;color:#26382f;font-weight:500}
+.jr-dialog .jr-title{font-size:clamp(37px,7vw,58px);margin:0 28px 19px}
+.jr-dialog h3,.jr-chat h2{font-size:clamp(30px,5vw,40px);margin:5px 0 16px}
+.jr-tabs{display:flex;gap:18px;overflow-x:auto;padding:0 28px;border-bottom:1px solid #c9c7b5}
+.jr-tabs button{flex-shrink:0;border:0;border-radius:0;background:transparent;color:#596554;font-size:14px;padding:9px 2px 12px;border-bottom:3px solid transparent}
+.jr-tabs button[aria-current]{color:#7c451d;border-color:#bb6f32;font-weight:700}
+.jr-inner{padding:24px 28px 30px}
+.jr-inner p{font-size:15px;line-height:1.62;margin:0 0 16px;color:#445243}
+.jr-inner .jr-lede{font-size:19px;color:#293d34}
+.jr-actions,.jr-projects{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.jr-actions{margin-top:21px}
+.jr-actions button,.jr-dialog .jr-link,.jr-demo button,.jr-projects button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:7px 12px;border:1px solid #b8bcaa;border-radius:5px;color:#2e4438;background:#faf8ef;font-size:13px;font-weight:650;text-decoration:none}
+.jr-actions button:first-child,.jr-actions .jr-link:first-child,.jr-demo button,.jr-projects button[aria-pressed=true]{border-color:#384e3f;background:#384e3f;color:#fffdf3}
+.jr-dialog button:hover,.jr-dialog .jr-link:hover{filter:brightness(.94)}
+.jr-dialog :focus-visible{outline:3px solid #aa5827;outline-offset:2px}
+.jr-projects{margin-bottom:21px}
+.jr-record{margin:15px 0 22px}
+.jr-record dt{padding-top:12px;font-weight:700;border-top:1px solid #cecebe}
+.jr-record dd{margin:2px 0 13px;font-size:14px;color:#4a5749}
+.jr-demo{margin-top:16px;padding:12px;border-radius:8px;border:1px solid #c6c7b4;background:#eaeadd}
+.jr-demo canvas{display:block;position:static;width:100%;height:auto;max-height:155px;object-fit:fill;margin:0 0 12px;border-radius:4px}
+.jr-demo label{display:flex;align-items:center;gap:14px;font-size:13px;font-weight:650}
+.jr-demo input[type=range]{flex:1;accent-color:#4b6959}
+.jr-demo output{display:inline-block;margin-left:12px;font:13px/1.5 Consolas,monospace}
+.jr-peers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.jr-peers label{display:block;min-width:0}
+.jr-peers textarea{display:block;resize:vertical;width:100%;min-height:58px;margin:3px 0 10px;border:1px solid #acb7a8;border-radius:4px;padding:6px 8px;background:#f8f9f1;color:#243a31;font:13px/1.4 Consolas,monospace}
+.jr-chat{inset:auto 0 max(22px,6dvh);max-height:80dvh}
+.jr-chat .jr-inner{padding-top:2px}
+.jr-chat .jr-speech{font-size:17px}
+@media(max-width:460px){.jr-head{padding:12px 18px 6px}.jr-dialog .jr-title{margin-left:18px}.jr-inner{padding:18px}.jr-tabs{gap:14px;padding:0 18px}.jr-dialog{max-height:91dvh}.jr-demo output{margin:7px}.jr-chat{inset:auto 0 12px}}

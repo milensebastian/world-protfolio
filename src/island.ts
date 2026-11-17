@@ -1,6 +1,8 @@
 import * as T from 'three'
 import {arrivalClearing,bridgeX,bridgeZ,nearTrail,paths,shoreDistance,shoreRadius,seaLevel,terrainHeight,walkHeight} from './geography'
-import {seeded} from './paint'
+import {architecture} from './architecture'
+import {woodland} from './woodland'
+import {seeded,surfaceGrain} from './paint'
 
 export function island(scene:T.Scene,planting:{tree:(x:number,z:number,r:number)=>boolean;free:(x:number,z:number,r:number)=>boolean}){
  const positions:number[]=[],colors:number[]=[],indices:number[]=[]
@@ -8,7 +10,7 @@ export function island(scene:T.Scene,planting:{tree:(x:number,z:number,r:number)
  for(let j=0;j<=rings;j++)for(let i=0;i<=segments;i++){
    const a=i/segments*Math.PI*2,r=(shoreRadius(a)+5)*j/rings,x=r*Math.cos(a),z=r*Math.sin(a),h=terrainHeight(x,z)
    positions.push(x,h,z)
-   green.set('#a4ba79').lerp(tint.set('#759b69'),.4+.2*Math.sin(x*.35+z*.21)+.16*Math.cos(z*.47))
+   green.set('#9eb46c').lerp(tint.set('#578053'),.4+.2*Math.sin(x*.35+z*.21)+.16*Math.cos(z*.47))
    if(shoreDistance(x,z)<6)green.lerp(stone,Math.max(0,Math.sin(a*3+.8))*.8)
    green.lerp(sand,1-T.MathUtils.smoothstep(h,seaLevel+.42,seaLevel+1.56));colors.push(green.r,green.g,green.b)
    if(i&&j){const q=j*(segments+1)+i;indices.push(q-segments-2,q-1,q,q-segments-2,q,q-segments-1)}
@@ -16,28 +18,32 @@ export function island(scene:T.Scene,planting:{tree:(x:number,z:number,r:number)
  const ground=new T.BufferGeometry();ground.setAttribute('position',new T.Float32BufferAttribute(positions,3));ground.setAttribute('color',new T.Float32BufferAttribute(colors,3));ground.setIndex(indices)
  // Increasing polar angle winds clockwise when viewed from above.
  const tris=ground.index!.array;for(let i=0;i<tris.length;i+=3){const a=tris[i];tris[i]=tris[i+1];tris[i+1]=a}
- ground.computeVertexNormals();const mesh=new T.Mesh(ground,new T.MeshToonMaterial({vertexColors:true}));mesh.receiveShadow=true;scene.add(mesh)
- const ocean=new T.Mesh(new T.CircleGeometry(340,128),new T.MeshBasicMaterial({color:'#559fa9'}))
- ocean.rotation.x=-Math.PI/2;ocean.position.y=seaLevel;scene.add(ocean)
+ function worldUV(geometry:T.BufferGeometry,repeat:number){
+   const points=geometry.attributes.position,uv=new Float32Array(points.count*2)
+   for(let i=0;i<points.count;i++){uv[i*2]=points.getX(i)/repeat;uv[i*2+1]=points.getZ(i)/repeat}
+   geometry.setAttribute('uv',new T.BufferAttribute(uv,2))
+ }
+ worldUV(ground,2.7)
+ ground.computeVertexNormals();const mesh=new T.Mesh(ground,new T.MeshStandardMaterial({vertexColors:true,map:surfaceGrain('meadow'),roughness:1}));mesh.receiveShadow=true;scene.add(mesh)
  // Trace the actual waterline, including beaches with different slopes.
  const surf:number[]=[],surfColors:number[]=[],surfIdx:number[]=[]
  for(let i=0;i<=segments;i++){
    const a=i/segments*2*Math.PI,c=Math.cos(a),s=Math.sin(a);let lo=shoreRadius(a)-9,hi=shoreRadius(a)+5
    for(let k=0;k<14;k++){const mid=(lo+hi)/2;if(terrainHeight(mid*c,mid*s)>seaLevel)lo=mid;else hi=mid}
-   for(const [offset,clr] of [[0,'#e1f1df'],[.38,'#dcebd7'],[.67,'#83c9bd'],[3,'#74bfba'],[8,'#559fa9']] as const){
-     surf.push((hi+offset)*c,seaLevel+.025,(hi+offset)*s);const col=tint.set(clr);surfColors.push(col.r,col.g,col.b)
+   for(const [offset,clr] of [[0,'#e1f1df'],[.38,'#dcebd7'],[.67,'#83c9bd'],[1.12,'#79aea1'],[1.7,'#638f89']] as const){
+     surf.push((hi+offset)*c,seaLevel+.064,(hi+offset)*s);const col=tint.set(clr);surfColors.push(col.r,col.g,col.b)
    }
    if(i)for(let j=0;j<4;j++){const b=i*5+j;surfIdx.push(b-5,b,b+1,b-5,b+1,b-4)}
  }
  const waterline=new T.BufferGeometry();waterline.setAttribute('position',new T.Float32BufferAttribute(surf,3));waterline.setAttribute('color',new T.Float32BufferAttribute(surfColors,3));waterline.setIndex(surfIdx)
  scene.add(new T.Mesh(waterline,new T.MeshBasicMaterial({vertexColors:true,side:T.DoubleSide})))
- const trailMat=new T.MeshToonMaterial({color:'#d7be94',side:T.DoubleSide})
+ const trailMat=new T.MeshStandardMaterial({map:surfaceGrain('gravel'),roughness:1,side:T.DoubleSide})
  for(const curve of paths){
    const verts:number[]=[],ids:number[]=[]
    curve.forEach(([x,z],i)=>{const before=curve[Math.max(0,i-1)],after=curve[Math.min(curve.length-1,i+1)],dx=after[0]-before[0],dz=after[1]-before[1],len=Math.hypot(dx,dz)||1
      for(const side of [-1,0,1]){const xx=x+side*dz/len*1.06,zz=z-side*dx/len*1.06;verts.push(xx,terrainHeight(xx,zz)+.065,zz)}
      if(i){const b=i*3;ids.push(b-3,b,b+1,b-3,b+1,b-2,b-2,b+1,b+2,b-2,b+2,b-1)}
-   });const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(verts,3));geo.setIndex(ids);geo.computeVertexNormals();const road=new T.Mesh(geo,trailMat);road.receiveShadow=true;scene.add(road)
+   });const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(verts,3));geo.setIndex(ids);worldUV(geo,1.8);geo.computeVertexNormals();const road=new T.Mesh(geo,trailMat);road.receiveShadow=true;scene.add(road)
  }
  const random=seeded(781),object=new T.Object3D()
  type Instance={x:number;y:number;z:number;s:number;color:string}
@@ -52,7 +58,9 @@ export function island(scene:T.Scene,planting:{tree:(x:number,z:number,r:number)
    const m=new T.InstancedMesh(geo,new T.MeshLambertMaterial(),items.length)
    items.forEach((v,i)=>{object.position.set(v.x,v.y+offset*v.s,v.z);object.scale.set(scale[0]*v.s,scale[1]*v.s,scale[2]*v.s);object.rotation.y=i*2.4;object.updateMatrix();m.setMatrixAt(i,object.matrix);m.setColorAt(i,tint.set(v.color))});m.computeBoundingSphere();scene.add(m);return m
  }
- scatter(new T.ConeGeometry(1,1,8),pines,[1.2,3.9,1.2],1.95);scatter(new T.ConeGeometry(1,1,8),pines,[.84,3,.84],3.35)
+ const forest=woodland(scene)
+ for(const p of pines)forest.tree(p.x,p.y,p.z,p.s,'pine')
+ forest.flush()
  scatter(new T.IcosahedronGeometry(1,0),rocks,[1,.75,1.2]);const flowerMesh=scatter(new T.IcosahedronGeometry(1,0),flowers,[1,.8,1])
  const boards=new T.InstancedMesh(new T.BoxGeometry(2.85,.14,.29),new T.MeshLambertMaterial({color:'#a6865c'}),29)
  for(let i=0;i<29;i++){const z=bridgeZ-4.2+i*.3;object.position.set(bridgeX,walkHeight(bridgeX,z)-.02,z);object.rotation.set(0,0,0);object.scale.setScalar(1);object.updateMatrix();boards.setMatrixAt(i,object.matrix)}
@@ -61,7 +69,16 @@ export function island(scene:T.Scene,planting:{tree:(x:number,z:number,r:number)
  const mill=new T.Group(),mx=37,mz=24;mill.position.set(mx,terrainHeight(mx,mz),mz)
  const limestone=new T.MeshLambertMaterial({color:'#dfceaa'}),timber=new T.MeshLambertMaterial({color:'#87674f'})
  const tower=new T.Mesh(new T.CylinderGeometry(.78,1.36,4,12),limestone);tower.position.y=2;mill.add(tower)
- const cap=new T.Mesh(new T.ConeGeometry(1.16,1.25,12),new T.MeshLambertMaterial({color:'#aa694d'}));cap.position.y=4.6;mill.add(cap)
+ const finishes=architecture(scene),base=mill.position.y
+ finishes.roofSurface(new T.ConeGeometry(1.16,1.25,20),mx,base+4.6,mz,'#98684f',3,1)
+ for(const level of [1.52,2.78]){
+   for(const side of [-1,1]){
+     const radius=1.36-(1.36-.78)*level/4
+     finishes.pane(mx+side*(radius+.01),base+level,mz,.42,.65,side*Math.PI/2)
+     finishes.block(mx+side*radius,base+level-.35,mz,.20,.09,.58,'#a39882')
+   }
+ }
+ finishes.flush()
  const rotor=new T.Group();rotor.position.set(0,3.7,1.12)
  const sail=new T.BoxGeometry(.45,1.65,.045)
  for(let i=0;i<4;i++){const arm=new T.Group(),blade=new T.Mesh(sail,limestone);blade.position.set(.18,1.44,0);arm.add(blade)
@@ -76,6 +93,6 @@ export function island(scene:T.Scene,planting:{tree:(x:number,z:number,r:number)
      #include <project_vertex>`)
  }
  const ripples=new T.InstancedMesh(new T.CircleGeometry(1,10),new T.MeshBasicMaterial({color:'#a9d8d1'}),220)
- for(let i=0;i<220;i++){const a=random()*6.283,r=shoreRadius(a)+4+random()*48;object.position.set(r*Math.cos(a),seaLevel+.04,r*Math.sin(a));object.rotation.set(-Math.PI/2,0,0);object.scale.set(.3+random()*1.2,.035+random()*.05,1);object.updateMatrix();ripples.setMatrixAt(i,object.matrix)}scene.add(ripples)
+ for(let i=0;i<220;i++){const a=random()*6.283,r=shoreRadius(a)+4+random()*Math.max(1,81-shoreRadius(a)-4);object.position.set(r*Math.cos(a),seaLevel+.04,r*Math.sin(a));object.rotation.set(-Math.PI/2,0,0);object.scale.set(.3+random()*1.2,.035+random()*.05,1);object.updateMatrix();ripples.setMatrixAt(i,object.matrix)}scene.add(ripples)
  return (time:number)=>{rotor.rotation.z=time*.38;ripples.position.x=Math.sin(time*.4)*.32;ripples.position.z=Math.cos(time*.3)*.12}
 }

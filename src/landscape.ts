@@ -9,7 +9,12 @@ export function landscape(scene:T.Scene,lots:Lot[],planting:{free:(x:number,z:nu
    const x=random()*104-52,z=random()*104-52
    if(!planting.free(x,z,.1)||shoreDistance(x,z)<7||nearTrail(x,z,1.2)||(Math.abs(x)<3.3||Math.abs(z)<3.3)||Math.hypot(x,z)<11.1||lots.some(b=>Math.abs(x-b.x)<b.w*.5+.2&&Math.abs(z-b.z)<b.d*.5+.2)||Math.hypot(x+27,z-6)<3.3)continue
    const y=terrainHeight(x,z)+.02,clr=new T.Color(i%11===0?'#eac989':i%3?'#83a459':'#b7c878')
-   for(let j=0;j<3;j++){const dx=(random()-.5)*.18,dz=(random()-.5)*.18;grass.push(x+dx-.035,y,z+dz,x+dx+.04,y,z+dz+.035,x+dx+.08,y+.12+random()*.18,z+dz);for(let k=0;k<3;k++)tones.push(clr.r,clr.g,clr.b)}
+   for(let j=0;j<5;j++){
+     const angle=random()*Math.PI*2,dx=Math.cos(angle),dz=Math.sin(angle),spread=random()*.16
+     const xx=x+dx*spread,zz=z+dz*spread,width=.012+random()*.017,height=.09+random()*.21
+     grass.push(xx-dz*width,y,zz+dx*width,xx+dz*width,y,zz-dx*width,xx+dx*height*.52,y+height,zz+dz*height*.52)
+     for(const brightness of [.57,.69,1.12])tones.push(clr.r*brightness,clr.g*brightness,clr.b*brightness)
+   }
  }
  const blades=new T.BufferGeometry();blades.setAttribute('position',new T.Float32BufferAttribute(grass,3));blades.setAttribute('color',new T.Float32BufferAttribute(tones,3))
  const breeze={value:0}

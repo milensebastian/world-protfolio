@@ -13,7 +13,7 @@ export function villageLife(scene:T.Scene,trees:{x:number;z:number;r:number}[],o
  const drops=instances(new T.SphereGeometry(1,7,5),new T.MeshBasicMaterial({color:'#e1faf3'}),64)
  const rings=instances(new T.TorusGeometry(1,.034,4,32),new T.MeshBasicMaterial({color:'#c7e9db'}),14)
  const water=new T.Mesh(new T.CircleGeometry(2.04,64),new T.ShaderMaterial({
-   uniforms:{time:{value:0}},vertexShader:'varying vec2 local;void main(){local=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+   uniforms:{time:{value:0}},vertexShader:'varying vec2 local;void main(){local=position.xy;vec3 transformed=position;\n#include <project_vertex>\n}',
    fragmentShader:`varying vec2 local;uniform float time;
    void main(){float d=length(local);float wave=sin(24.*d-time*3.+.6*sin(local.x*5.+time))*.5+.5;
    float glint=pow(wave,14.)*(.5+.5*sin(local.y*11.+time*.7));

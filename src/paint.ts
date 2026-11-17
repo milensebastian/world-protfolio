@@ -1,4 +1,4 @@
-import {villageRise} from './geography'
+import {terrainHeight} from './geography'
 import * as T from 'three'
 
 export function seeded(seed: number) {
@@ -17,69 +17,97 @@ function painted(size: number, draw: (ctx: CanvasRenderingContext2D, random: () 
   return map
 }
 
-// A seamless, staggered set of individually cut stones with light upper edges.
-function cobbles() {
-  return painted(512, (c, random) => {
-    c.fillStyle = '#aaaca0'
-    c.fillRect(0, 0, 512, 512)
-    for (let row = 0; row < 12; row++) {
-      for (let col = -1; col < 8; col++) {
-        const x = col * 64 + (row % 2) * 32, y = row * 512/12
-        const light = 70 + random()*11
-        c.fillStyle = 'hsl('+(32+random()*14)+' 18% '+light+'%)'
-        c.beginPath(); c.roundRect(x+1.8, y+2, 61, 39, [6,9,5,7]); c.fill()
-        c.strokeStyle = '#f4ecce85'; c.lineWidth = 2
-        c.beginPath(); c.moveTo(x+8,y+4); c.lineTo(x+54,y+4); c.stroke()
+// Draw a tile at world scale. Fine grain softens into its base colour in the distance.
+export function surfaceGrain(kind:'meadow'|'gravel'|'asphalt'){
+  return painted(256,(c,random)=>{
+    c.fillStyle=kind==='meadow'?'#e2e6ce':kind==='gravel'?'#bbaa90':'#718180'
+    c.fillRect(0,0,256,256)
+    for(let i=0;i<8000;i++){
+      const x=random()*256,y=random()*256,light=random()>.52
+      c.fillStyle=c.strokeStyle=light?'rgba(255,251,222,.22)':'rgba(42,55,47,.18)'
+      if(kind==='meadow'){
+        const len=2+random()*7
+        c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x+1,y-len*.6,x+len*.47,y-len);c.stroke()
+      }else{
+        const radius=(kind==='gravel'?1.5:.7)*random()+.35
+        c.beginPath();c.ellipse(x,y,radius*1.6,radius,random()*3,0,Math.PI*2);c.fill()
       }
     }
-    for(let i=0;i<10000;i++){c.fillStyle=random()>.5?'#fff5d71a':'#5f665211';c.fillRect(random()*512,random()*512,1+random()*3,1)}
   })
 }
 
-export function plaza(scene: T.Scene) {
-  const map = cobbles()
-  const mat = new T.MeshToonMaterial({map,color:'#ffffff'})
-  function lay(g:T.BufferGeometry,y:number){
+function flagstones(){
+  return painted(512,(c,random)=>{
+    c.fillStyle='#787b71';c.fillRect(0,0,512,512)
+    for(let row=0;row<8;row++){
+      const cuts=[0,85,170,256,341,426,512].map((x,i)=>x+(i>0&&i<6?(random()-.5)*39:0))
+      for(let i=0;i<6;i++){
+        const x=cuts[i]+(row%2)*44,w=cuts[i+1]-cuts[i],y=row*64,l=58+random()*11
+        for(const offset of [-512,0]){
+          const left=x+offset
+          c.fillStyle='hsl(43 9% '+l+'%)'
+          c.beginPath();c.moveTo(left+3,y+2);c.lineTo(left+w-5,y+1);c.lineTo(left+w-1,y+5);c.lineTo(left+w-2,y+59);c.lineTo(left+w-7,y+63);c.lineTo(left+2,y+62);c.closePath();c.fill()
+          c.strokeStyle='rgba(245,239,215,.48)';c.lineWidth=1.2
+          c.beginPath();c.moveTo(left+2,y+58);c.lineTo(left+3,y+3);c.lineTo(left+w-6,y+2);c.stroke()
+          if((i+row*3)%9===0){
+            c.strokeStyle='rgba(70,74,66,.52)';c.beginPath();c.moveTo(left+w*.72,y+2);c.lineTo(left+w*.67,y+11);c.lineTo(left+w*.7,y+14);c.lineTo(left+w*.62,y+21);c.stroke()
+          }
+        }
+      }
+    }
+    for(let i=0;i<31000;i++){
+      c.fillStyle=random()>.5?'#f3efdb29':'#424f4924'
+      c.fillRect(random()*512,random()*512,1+random()*2,1)
+    }
+  })
+}
+
+export function plaza(scene:T.Scene){
+  const slab=flagstones(),road=surfaceGrain('asphalt')
+  const paving=new T.MeshStandardMaterial({map:slab,bumpMap:slab,bumpScale:.023,roughness:.95})
+  const asphalt=new T.MeshStandardMaterial({map:road,roughness:1})
+  function lay(g:T.BufferGeometry,y:number,material:T.Material,repeat:number){
     g.rotateX(-Math.PI/2)
     const uv=g.attributes.uv,points=g.attributes.position
-    for(let i=0;i<uv.count;i++){const x=points.getX(i),z=points.getZ(i);points.setY(i,villageRise(x,z));uv.setXY(i,x/4.5,z/4.5)}
+    for(let i=0;i<uv.count;i++){
+      const x=points.getX(i),z=points.getZ(i)
+      points.setY(i,terrainHeight(x,z));uv.setXY(i,x/repeat,z/repeat)
+    }
     g.computeVertexNormals()
-    const mesh=new T.Mesh(g,mat);mesh.position.y=y;mesh.receiveShadow=true;scene.add(mesh)
+    const mesh=new T.Mesh(g,material);mesh.position.y=y;mesh.receiveShadow=true;scene.add(mesh)
   }
-  lay(new T.PlaneGeometry(72,5.85,96,8),.037)
-  lay(new T.PlaneGeometry(5.85,72,8,96),.043)
-  lay(new T.RingGeometry(.001,10.88,96,20),.14)
-  const rim=new T.RingGeometry(9.85,10.07,96);rim.rotateX(-Math.PI/2)
-  const pp=rim.attributes.position;for(let i=0;i<pp.count;i++)pp.setY(i,villageRise(pp.getX(i),pp.getZ(i)))
-  const band=new T.Mesh(rim,new T.MeshToonMaterial({color:'#9cae9e'}));band.position.y=.144;band.receiveShadow=true;scene.add(band)
+  // Follow the relief into each trailhead. The last few metres narrow to the
+  // gravel track, with the stone shoulder running out along either side.
+  function lane(alongX:boolean,shoulder:number){
+    const g=new T.PlaneGeometry(72,1,144,shoulder?1:10),points=g.attributes.position
+    for(let i=0;i<points.count;i++){
+      const along=points.getX(i),across=points.getY(i)
+      const t=T.MathUtils.smoothstep(Math.abs(along),30.5,36)
+      const halfWidth=T.MathUtils.lerp(2.925,1.06,t)
+      const edge=.48*(1-t)
+      const lateral=shoulder?shoulder*(halfWidth-edge*.5)+across*edge:across*2*halfWidth
+      points.setXY(i,alongX?along:-lateral,alongX?lateral:along)
+    }
+    lay(g,shoulder?.105:.084,shoulder?paving:asphalt,shoulder?2.4:3)
+  }
+  for(const alongX of [true,false])for(const shoulder of [0,-1,1])lane(alongX,shoulder)
+  lay(new T.RingGeometry(.001,10.88,96,32),.23,paving,3.6)
+  const border=paving.clone();border.color.set('#788983')
+  lay(new T.RingGeometry(9.85,10.07,120,2),.238,border,2)
 }
 
 export function atmosphere(scene:T.Scene) {
-  scene.fog = new T.Fog('#bee0dd',40,123)
-  const canvas=document.createElement('canvas')
-  canvas.width=2048;canvas.height=768
-  const c=canvas.getContext('2d')!,random=seeded(932)
-  const gradient=c.createLinearGradient(0,0,0,768)
-  gradient.addColorStop(0,'#3e92c3');gradient.addColorStop(.47,'#6bc7e7')
-  gradient.addColorStop(.78,'#b8e7e9');gradient.addColorStop(1,'#eaf0d4')
-  c.fillStyle=gradient;c.fillRect(0,0,2048,768)
-  // Overlap lit lobes into banks with a shared lavender underside.
-  for(let i=0;i<58;i++){
-    const x=random()*2048,y=260+random()*340,s=.33+random()*.98
-    const lobes=Array.from({length:14},(_,j)=>({x:(j-6.5)*11*s,y:-Math.sin(j/13*Math.PI)*28*s-random()*12*s,r:(12+random()*21)*s}))
-    for(const shift of [-2048,0,2048]){
-      if(x+shift< -180||x+shift>2228)continue
-      for(const p of lobes){
-        const cy=y+p.y
-        const fill=c.createLinearGradient(0,cy-p.r,0,cy+p.r*.75)
-        fill.addColorStop(0,'#fffced');fill.addColorStop(.5,'#faf9e9');fill.addColorStop(1,'#bfd5dd')
-        c.fillStyle=fill;c.beginPath();c.ellipse(x+shift+p.x,cy,p.r*1.32,p.r*.78,0,0,Math.PI*2);c.fill()
-      }
-    }
+  const paper=document.createElement('canvas');paper.width=1536;paper.height=1024
+  const sky=paper.getContext('2d')!,random=seeded(162)
+  sky.fillStyle='#66bfbe';sky.fillRect(0,0,paper.width,paper.height)
+  for(let i=0;i<110;i++){
+    const x=random()*paper.width,y=random()*paper.height,r=1+random()*2.7
+    sky.beginPath();sky.ellipse(x,y,r,r*.64,random()*3,0,Math.PI*1.75)
+    sky.strokeStyle=i%3?'#8fd6cf':'#54aaa9';sky.lineWidth=1.4;sky.stroke()
   }
-  const sky=new T.CanvasTexture(canvas);sky.colorSpace=T.SRGBColorSpace;sky.wrapS=T.RepeatWrapping
-  const dome=new T.Mesh(new T.SphereGeometry(150,48,24),new T.MeshBasicMaterial({map:sky,side:T.BackSide,fog:false,depthWrite:false}))
-  dome.onBeforeRender=()=>{dome.rotation.y=performance.now()*.0000015};dome.scale.y=.56;dome.position.y=20;dome.renderOrder=-10;scene.add(dome)
+  const backdrop=new T.CanvasTexture(paper);backdrop.colorSpace=T.SRGBColorSpace
+  scene.background=backdrop
+  scene.fog=null
   scene.add(new T.HemisphereLight('#fff5df','#c3c6b6',1.3))
   const sun=new T.DirectionalLight('#fff0cd',2.05)
   sun.position.set(-26,39,23);sun.castShadow=true

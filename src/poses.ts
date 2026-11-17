@@ -1,6 +1,6 @@
 import * as T from 'three'
 
-export type Activity='idle'|'walk'|'run'|'jump'|'sit'|'talk'|'sweep'|'work'|'ride'|'wave'
+export type Activity='idle'|'walk'|'run'|'jump'|'sit'|'talk'|'sweep'|'work'|'ride'|'wave'|'swim'
 type Rig={body:T.Group;head:T.Group;arms:T.Group[];legs:T.Group[];knees:T.Group[];elbows:T.Group[]}
 export function pose(r:Rig,role:number){
   const smooth=(o:T.Euler,key:'x'|'z',target:number,blend:number)=>{o[key]+=(target-o[key])*blend}
@@ -23,6 +23,7 @@ export function pose(r:Rig,role:number){
       let hip=v*stride*(run?.97:.7),knee=Math.max(0,Math.sin(phase+s*.56)*s)*stride*(run?1.3:.78)
       let arm=-hip*.88,elbow=-.12-(run?.94:.26)*stride,spread=s*.045
       if(action==='jump'){hip=i===0?-.63:-.14;knee=i===0?.97:.55;arm=-.46+lift*.065;elbow=-.6;spread=s*.25}
+      if(action==='swim'){arm=-1.08+Math.sin(time*3+s)*.58;elbow=-.65;spread=s*.65;hip=s*Math.sin(time*4)*.31;knee=.47}
       if(action==='sit'){hip=-1.52;knee=1.58;arm=-.36;elbow=-.97}
       if(action==='ride'){hip=-.93+s*step*.42;knee=1.24-s*step*.58;arm=-.87;elbow=-.34}
       if(action==='idle'){arm=breath*.045;elbow=-.14-.07*Math.sin(time*.8+role)}

@@ -2,8 +2,8 @@ import {creekZ,lanes,paths,shoreRadius,stops,type Point} from './geography'
 const coast=Array.from({length:240},(_,i)=>{const a=i*Math.PI/120,r=shoreRadius(a);return [Math.cos(a)*r,Math.sin(a)*r].join(',')}).join(' ')
 const roads=[...lanes,...paths].map(path=>path.map(p=>p.join(',')).join(' '))
 export default function IslandAtlas({position,names,travel}:{position:Point;names:string[];travel:(i:number)=>void}){
- return <svg className="island-atlas" viewBox="-76 -71 152 142" aria-label="Island atlas with district destinations and your current position">
- <rect x="-76" y="-71" width="152" height="142" rx="5" fill="#93c9cd"/>
+ return <svg className="island-atlas" viewBox="-90 -90 180 180" aria-label="Island atlas with district destinations and your current position">
+ <circle r="85" fill="#93c9cd"/>
  <polygon points={coast} fill="#b2c394" stroke="#f4e1b8" strokeWidth="3"/>
  <polyline points={Array.from({length:32},(_,i)=>{const x=-34-i;return [x,creekZ(x)].join(',')}).join(' ')} fill="none" stroke="#93c9cd" strokeWidth="1.6"/>
  {roads.map((r,i)=><polyline key={i} points={r} fill="none" stroke={i<4?'#f8e9cb':'#e2ce9d'} strokeWidth={i<4?2.6:1.4}/>)}

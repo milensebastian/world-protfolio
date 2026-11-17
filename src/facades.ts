@@ -15,18 +15,29 @@ export function decorateFacade(add:Add,box:Box,ball:Ball,x:number,z:number,w:num
     beam(x-w/2-.45,h,x,h+1.85,edge,.16,timber);beam(x,h+1.85,x+w/2+.45,h,edge,.16,timber)
     box(x,h+.05,edge,w+.8,.16,.16,timber)
     if(index%3!==1){
-      const triangle=new T.Shape();triangle.moveTo(-w/2,0);triangle.lineTo(0,1.68);triangle.lineTo(w/2,0);triangle.closePath()
-      add(new T.ShapeGeometry(triangle),cream,x,h+.05,edge+f*.015,0,f<0?Math.PI:0)
       for(const offset of [-.22,0,.22]){const post=1.56*(1-Math.abs(offset)*2);box(x+offset*w,h+post/2,edge+f*.052,.09,post,.09,timber)}
+    } else {
+      box(x,h+.73,edge,.75,.88,.1,timber)
+      box(x,h+.73,edge+f*.063,.57,.69,.05,'#394849')
+      for(const dx of [-.3,.3])box(x+dx,h+.73,edge+f*.105,.07,.8,.06,cream)
+      box(x,h+.3,edge+f*.08,.84,.09,.21,cream)
     }
   }
-  // Low raised courses catch sunlight along both roof slopes.
-  for(let i=1;i<=7;i++)for(const side of [-1,1]){
-    const t=i/8,xx=x+side*t*(w/2+.45),yy=h+1.85*(1-t)
-    box(xx,yy+.026,z,.065,.06,d+.81,i%2?'#bd7655':'#c58360')
-  }
-  box(x,h+1.86,z,.19,.14,d+.92,'#bc7554')
+  box(x,h+1.91,z,.19,.14,d+.92,roof)
   for(const side of [-1,1]){
+    const eave=x+side*(w/2+.43),pipeZ=z-d*.38
+    add(new T.CylinderGeometry(.077,.077,d+.85,12),'#626b66',eave,h-.01,z,Math.PI/2)
+    add(new T.CylinderGeometry(.058,.058,h-.24,12),'#6b736b',x+side*(w/2+.12),h/2,pipeZ)
+    box(x+side*(w/2+.27),h-.13,pipeZ,.37,.11,.12,'#626b66')
+    for(const level of [.7,h*.58,h-.42])box(x+side*(w/2+.12),level,pipeZ,.14,.044,.14,'#505953')
+    for(let r=-d/2;r<=d/2;r+=.64)box(x+side*(w/2+.21),h-.10,z+r,.48,.13,.10,'#6e5c4b')
+    for(let row=1.5;row<h-.4;row+=2.05){
+      const back=z-facing*(d/2+.055),wx=x+side*w*.32
+      for(const jamb of [-.50,.50])box(wx+jamb,row,back,.075,1.33,.15,cream)
+      box(wx,row-.67,back,1.18,.12,.29,'#aea798')
+      box(wx,row+.65,back,1.11,.10,.17,cream)
+      box(wx,row,back,.048,1.23,.11,timber)
+    }
     const xx=x+side*(w/2-.09)
     box(xx,h/2,front,.17,h,.12,timber)
     for(let i=0;i<4;i++)box(xx,i*.37+.19,front+.035*facing,.38,.3,.17,'#cbba9c')

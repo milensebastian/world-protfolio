@@ -8,6 +8,16 @@ import type {Activity} from './poses'
 
 type Stop={x:number;z:number;action:Activity;seconds:number;facing:number}
 const stop=(x:number,z:number,action:Activity='idle',seconds=1,facing=0):Stop=>({x,z,action,seconds,facing})
+// Opposite quadrants keep the two long circuits on separate streets.
+function cycleRoute(direction:number){
+  const points=[
+    [-12,-1.35],[-28,-1.35],[-30,-.85],[-30.6,0],[-30,.85],[-28,1.35],
+    [-8,1.35],[-6,.8],[-4.4,-.6],[-3.6,-2.2],[-2,-3.6],[-.4,-4.6],[1.35,-7.2],
+    [1.35,-29],[.85,-31],[0,-31.6],[-.85,-31],[-1.35,-29],[-1.35,-8],
+    [-2,-6],[-3.5,-4.3],[-5.7,-2],[-8,-1.35]
+  ]
+  return points.map(([x,z])=>stop(x*direction,z*direction))
+}
 // Cyclic centerlines follow the existing streets. Destinations beside a bench
 // use a frontal approach; only the seated pose settles onto the seat.
 const routes:Stop[][]=[
@@ -17,10 +27,10 @@ const routes:Stop[][]=[
   [stop(1,-27,'idle',5),stop(3,-25.1),stop(3,-24,'sit',12,Math.PI),stop(3,-25.1)],
   [stop(-27,1,'work',7),stop(-27.65,-1),stop(-27.65,-3.98),stop(-26,-3.98),stop(-26,-3,'sit',8,Math.PI),stop(-26,-3.98),stop(-27.65,-3.98),stop(-27.65,-1)],
   [stop(-4,-2,'idle',3),stop(-4.5,-4.7,'work',6),stop(-5.85,-4.52,'talk',6),stop(-4.5,-4.7)],
-  [stop(5,1),stop(5.6,-1.5),stop(4,-1.8),stop(2.8,-2.9),stop(-2,-3.2),stop(-3.4,-1.7),stop(-3.4,1.4),stop(-2,3.4),stop(2,3.4),stop(4,2.7)],
+  cycleRoute(1),
   [stop(-3.7,1.5,'sweep',7),stop(-3.4,-1.2,'sweep',6),stop(-4.3,-2.9,'sweep',8),stop(-3.4,-1.2)],
   [stop(-6.15,-5.6,'work',5),stop(-7.25,-5.6,'work',4),stop(-8,-5.6,'work',3),stop(-8,-6.19,'idle',5,Math.PI),stop(-8,-5.6,'work',2)],
-  [stop(7.6,.9),stop(18,.9),stop(27,.9),stop(29,1),stop(30,0),stop(29,-1.1),stop(17,-1.1),stop(8,-1.1),stop(6.8,0)]
+  cycleRoute(-1)
 ]
 const names=[...people,'Street cleaner','Market baker','Cycle mechanic']
 const lines=[
@@ -42,7 +52,7 @@ export function residents(scene:T.Scene,lots:{x:number;z:number;w:number;d:numbe
     scene.add(actor.root);if(bike)scene.add(bike.group)
     const first=route[0];actor.root.position.set(first.x,walkHeight(first.x,first.z)+.24,first.z);actor.root.rotation.y=first.facing
     return {...actor,name:names[i],region:i<5?i:0,route,index:0,wait:bike?0:first.seconds,distance:0,bike,
-      velocity:0,ovenDuration:0,poseDt:0,inside:false,action:first.action,react:0,reaction:'wave' as Activity,heading:first.facing}
+      radius:bike?.97:.43,passSide:1,velocity:0,ovenDuration:0,poseDt:0,inside:false,action:first.action,react:0,reaction:'wave' as Activity,heading:first.facing}
   })
   let nextEvent=18,clearAt=0,chat=0,chatIndex=0,replied=false,nextChat=0
   const streetProps=[
@@ -89,7 +99,7 @@ export function residents(scene:T.Scene,lots:{x:number;z:number;w:number;d:numbe
         const dx=to.x-p.x,dz=to.z-p.z,len=Math.hypot(dx,dz),speed=n.bike?2.25:.77+(i%3)*.085
         n.velocity=T.MathUtils.damp(n.velocity,speed,5,dt);moved=Math.min(len,dt*n.velocity)
         if(len>.001){
-          const ux=dx/len,uz=dz/len,clearance=n.bike?.61:.43
+          const ux=dx/len,uz=dz/len,clearance=n.radius
           const valid=(x:number,z:number)=>{
             if(Math.hypot(x,z)<2.53||lots.some(b=>Math.abs(x-b.x)<b.w/2+.21&&Math.abs(z-b.z)<b.d/2+.21))return false
             if(trees.some(t=>Math.hypot(x-t.x,z-t.z)<t.r+.23))return false
@@ -98,16 +108,17 @@ export function residents(scene:T.Scene,lots:{x:number;z:number;w:number;d:numbe
               return !seat&&Math.abs(x-b.x)<b.w/2+.19&&Math.abs(z-b.z)<b.d/2+.19
             }))return false
             const closing=(q:T.Vector3,r:number)=>Math.hypot(x-q.x,z-q.z)<r&&Math.hypot(x-q.x,z-q.z)<Math.hypot(p.x-q.x,p.z-q.z)
-            return !closing(player,clearance+.11)&&!roster.some(o=>o!==n&&!o.inside&&closing(o.root.position,clearance+(o.bike?.15:.08)))
+            return !closing(player,clearance+.4)&&!roster.some(o=>o!==n&&o.root.visible&&closing(o.root.position,clearance+o.radius+.08))
           }
           let nx=p.x+ux*moved,nz=p.z+uz*moved
           if(!valid(nx,nz)){
             // Keep right when paths cross; pedestrians can also pass on the left.
             let found=false
-            for(const angle of [.92,-.92,1.52,-1.52]){
+            for(const turn of [.65,1.05,1.52,1.85,-.65,-1.05,-1.52]){
+              const angle=turn*n.passSide
               nx=p.x+(ux*Math.cos(angle)-uz*Math.sin(angle))*moved
               nz=p.z+(uz*Math.cos(angle)+ux*Math.sin(angle))*moved
-              if(valid(nx,nz)){found=true;break}
+              if(valid(nx,nz)){if(turn<0)n.passSide*=-1;found=true;break}
             }
             if(!found){nx=p.x;nz=p.z;n.velocity=0}
           }
@@ -116,7 +127,16 @@ export function residents(scene:T.Scene,lots:{x:number;z:number;w:number;d:numbe
           p.x=nx;p.z=nz
         }
         n.distance+=moved;action=n.bike?'ride':'walk'
-        if(Math.hypot(p.x-to.x,p.z-to.z)<.012){n.index=(n.index+1)%n.route.length;n.wait=n.bike?0:to.seconds*(.86+Math.random()*.28);n.ovenDuration=n.wait}
+        const remaining=Math.hypot(p.x-to.x,p.z-to.z)
+        // A person may be standing on a waypoint. Continue around them once
+        // the route reaches their clearance boundary instead of circling it.
+        const coversStop=(q:T.Vector3,r:number)=>Math.hypot(q.x-to.x,q.z-to.z)<r && remaining<r+.35
+        const occupied=coversStop(player,n.radius+.4)||roster.some(o=>o!==n&&o.root.visible&&coversStop(o.root.position,n.radius+o.radius+.08))
+        if(remaining<.012||occupied){
+          n.index=(n.index+1)%n.route.length
+          n.wait=n.bike||occupied?0:to.seconds*(.86+Math.random()*.28)
+          n.ovenDuration=n.wait
+        }
       }
       p.y=walkHeight(p.x,p.z)+.24
       n.root.rotation.y+=Math.atan2(Math.sin(n.heading-n.root.rotation.y),Math.cos(n.heading-n.root.rotation.y))*(1-Math.exp(-dt*9))

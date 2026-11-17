@@ -5,13 +5,15 @@ import { decorateFacade } from './facades'
 import { landscape } from './landscape'
 import {houses,benches,lamps,plantingPlan} from './planting'
 import {terrainHeight,villageRise,arrivalClearing,nearTrail} from './geography'
-import {gardenOak} from './gardenOak'
+import {woodland} from './woodland'
+import {clockTower} from './clockTower'
+import {architecture} from './architecture'
 export const people=['Town guide','Lab scientist','Workshop engineer','Campus librarian','Garden keeper','Florist','Town courier']
 export function scenery(scene:T.Scene){
- const planting=plantingPlan()
+ const planting=plantingPlan(),forest=woodland(scene),building=architecture(scene)
  let oak:{x:number;z:number}|undefined
  for(const [x,z] of [[-34,9],[-33,14],[-35,12],[-19,19],[-33,-12],[-36,13]]){
-   if(planting.tree(x,z,3.8)){oak=gardenOak(scene,x,z);break}
+   if(planting.tree(x,z,3.8)){forest.tree(x,terrainHeight(x,z),z,1.28,'oak');oak={x,z};break}
  }
  let base:number|undefined
  const elevation=(x:number,z:number)=>base??terrainHeight(x,z)+.09
@@ -24,30 +26,25 @@ export function scenery(scene:T.Scene){
  const cyl=(x:number,y:number,z:number,rt:number,rb:number,h:number,c:string,n=16)=>add(new T.CylinderGeometry(rt,rb,h,n),c,x,y,z)
  function ball(x:number,y:number,z:number,w:number,h:number,d:number,c:string){const g=new T.IcosahedronGeometry(1,1);g.scale(w,h,d);add(g,c,x,y,z)}
  plaza(scene)
- base=0
- for(let i=0;i<12;i++){const a=rand()*6.28,r=92+rand()*24;ball(Math.sin(a)*r,-4,Math.cos(a)*r,15+rand()*10,10+rand()*10,18,i%3?'#7daba5':'#91b4ac')}
- base=undefined
  function tree(x:number,z:number,s:number,blossom=false){
    if(!planting.tree(x,z,2.7*s))return
-   base=terrainHeight(x,z)+.09
-   const palette=blossom?['#c78191','#dfa3ac','#efc3bd']:['#537e55','#739852','#99b46a']
-   cyl(x,1.55*s,z,.16*s,.37*s,3.1*s,'#826b53',9)
-   for(let i=0;i<8;i++){
-     const angle=i*2.4,r=(i<5?1.26:.69)*s
-     const xx=x+Math.sin(angle)*r,zz=z+Math.cos(angle)*r,yy=(3.45+i*.16)*s
-     if(i<4)add(new T.CylinderGeometry(.09*s,.16*s,1.95*s,7),'#826b53',(x+xx)/2,2.8*s,(z+zz)/2,Math.cos(angle)*.55,0,-Math.sin(angle)*.55)
-     ball(xx,yy,zz,1.32*s,1.04*s,1.24*s,palette[i%3])
-     for(let j=0;j<3;j++)ball(xx+Math.sin(j*2.1)*.67*s,yy+.48*s,zz+Math.cos(j*2.1)*.7*s,.72*s,.57*s,.68*s,palette[1+j%2])
-   }
+   forest.tree(x,terrainHeight(x,z),z,s,blossom?'blossom':'oak')
  }
- function home(x:number,z:number,w:number,h:number,d:number,c:string,roof:string,index:number){base=villageRise(x,z);box(x,-.36,z,w+.22,.83,d+.22,'#ae9e84');lots.push({x,z,w,d});box(x,h/2,z,w,h,d,c);box(x,.28,z,w+.22,.55,d+.22,'#ada187');box(x,h-.2,z,w+.26,.24,d+.26,'#ac936d');const sign=z<0?1:-1,front=z+sign*(d/2+.06)
+ function home(x:number,z:number,w:number,h:number,d:number,c:string,roof:string,index:number){base=villageRise(x,z);box(x,-.36,z,w+.22,.83,d+.22,'#ae9e84');lots.push({x,z,w,d});building.house(x,base,z,w,h,d,c,roof,index);box(x,h-.2,z,w+.26,.24,d+.26,'#ac936d');const sign=z<0?1:-1,front=z+sign*(d/2+.06)
  const tri=new T.Shape();tri.moveTo(-w/2-.45,0);tri.lineTo(0,1.85);tri.lineTo(w/2+.45,0);tri.closePath();add(new T.ExtrudeGeometry(tri,{depth:d+.8,bevelEnabled:false}),roof,x,h,z-d/2-.4)
  box(x,1.03,front,1.03,2,.13,index===0?'#493e35':'#6b513f');for(const side of [-1,1])for(let y=1.5;y<h-.4;y+=2.05){let wx=x+side*w*.32;box(wx,y,front,1.13,1.39,.13,'#766f5e');box(wx,y,front+.09*sign,.91,1.15,.1,'#608281');box(wx,y,front+.15*sign,.07,1.15,.09,'#f8e1ab');box(wx,y,front+.15*sign,1,.08,.09,'#f8e1ab');box(wx,y-.75,front,.99,.15,.43,'#b18a66')}
  decorateFacade(add,box,ball,x,z,w,h,d,roof,index)
- box(x+w*.28,h+1,z-d*.2,.6,2,.65,roof);for(let i=0;i<8;i++) box(x-w*.35+i*w*.1,2.55,front+sign*.51,w*.1,.16,1.12,i%2?'#f5d6a3':roof)}
- houses.forEach(([x,z,w,h,d],i)=>home(x,z,w,h,d,['#f4dcb4','#e7c595','#e6dbbd'][i%3],['#b76745','#a95438','#707f76'][i%3],i))
+ const chimneyX=x+w*.28,chimneyZ=z-d*.2
+ building.block(chimneyX,base+h+1.1,chimneyZ,.60,2.16,.65,'#af816b')
+ box(chimneyX,h+2.18,chimneyZ,.74,.16,.79,'#84695a')
+ cyl(chimneyX,h+2.4,chimneyZ,.155,.18,.33,'#a8765b')
+ if([0,1,3,6].includes(index))for(let i=0;i<8;i++){
+   add(new T.BoxGeometry(w*.1,.06,1.17),i%2?'#d9d1b8':'#807d68',x-w*.35+i*w*.1,2.68,front+sign*.51,sign*.18)
+ }
+ }
+ houses.forEach(([x,z,w,h,d],i)=>home(x,z,w,h,d,['#d7cfbc','#c0b6a6','#e0d9c8'][i%3],['#a76e54','#966047','#687572'][i%3],i))
  base=villageRise(-8,-9)
- const tx=-6,tz=-12;box(tx,5.7,tz,2.4,11.4,2.4,'#e6cf9f');cyl(tx,12.2,tz,.12,2,2,'#aa6240',4);cyl(tx,13.6,tz,.06,.06,1,'#664a3d');const clock=new T.CircleGeometry(.83,24);add(clock,'#fff3cf',tx,9.85,tz+1.22);box(tx,10.04,tz+1.24,.07,.4,.06,'#534b3d');box(tx+.16,9.85,tz+1.25,.32,.07,.06,'#534b3d')
+ clockTower(scene,building,-6,base,-12)
  base=villageRise(0,0)
  cyl(0,.33,0,2.1,2.35,.58,'#b3a88f',32);cyl(0,.64,0,2.06,2.06,.07,'#7ebfc3',32);cyl(0,1.1,0,.28,.48,.9,'#d6c9ae');cyl(0,1.7,0,.99,.34,.4,'#e5d3b1');cyl(0,1.98,0,.085,.17,.75,'#abdcd9');ball(0,2.33,0,.12,.17,.12,'#d8ede6')
  for(const [x,z] of lamps){base=villageRise(x,z);cyl(x,1.65,z,.095,.15,3.3,'#4a554e',8);box(x,3.48,z,.42,.55,.42,'#ffe8a0');cyl(x,3.86,z,.05,.45,.3,'#48574b',4)}
@@ -85,6 +82,13 @@ export function scenery(scene:T.Scene){
  // The laboratory has a glass annex and a row of turquoise instruments.
  base=villageRise(24,-6)
  box(29.4,1.35,-5.8,2.4,2.7,3.7,'#699598');lots.push({x:29.4,z:-5.8,w:2.4,d:3.7});for(const x of [28.5,29.4,30.3])box(x,1.4,-3.91,.08,2.8,.1,'#dedbc6');box(29.4,2.85,-5.8,2.7,.24,4,'#486b69')
+ for(const side of [-1,1]){
+   for(let j=0;j<3;j++){
+     const xx=29.4+(j-1)*.78
+     building.pane(xx,base+1.46,-5.8+side*1.86,.70,2.36,side===1?0:Math.PI)
+   }
+   for(let j=0;j<4;j++)building.pane(29.4+side*1.21,base+1.46,-5.8+(j-1.5)*.90,.82,2.36,side*Math.PI/2)
+ }
  // The workshop wheel is visible from the southern approach.
  base=villageRise(-7,27)
  const wheel=new T.TorusGeometry(1.04,.14,7,20);add(wheel,'#996b43',-7,2.8,23.4);for(let i=0;i<6;i++)add(new T.BoxGeometry(.12,1.95,.12),'#9f764a',-7,2.8,23.4,0,0,i*Math.PI/6)
@@ -124,15 +128,14 @@ export function scenery(scene:T.Scene){
  for(const side of [-1,1])for(let j=0;j<9;j++){
    const x=side*(3.95+(j%2)*.38),z=-15-j*2.95
    if(!planting.tree(x,z,.85))continue
-   cyl(x,.75,z,.12,.19,1.5,'#806b52',7)
-   ball(x,2.1,z,.74,1.82,.62,'#5e8363');ball(x+.1,3.08,z,.46,1.24,.43,'#79996d')
+   forest.tree(x,terrainHeight(x,z),z,.92,'cypress')
  }
  // Open-sided achievement pavilion and a painter’s courtyard off the coastal trails.
  base=villageRise(24,-26)
  const px=24,pz=-26
  cyl(px,.10,pz,2.7,2.9,.30,'#cdbd9b',8)
  for(let i=0;i<8;i++){const a=(i+.5)*Math.PI/4;cyl(px+Math.cos(a)*2.45,1.71,pz+Math.sin(a)*2.45,.11,.16,3.1,'#967758',8)}
- cyl(px,3.45,pz,2.85,3,.26,'#a97c58',8);cyl(px,4.16,pz,.28,3,1.28,'#708c81',8);cyl(px,4.94,pz,.055,.19,.45,'#caac71',8)
+ cyl(px,3.45,pz,2.85,3,.26,'#a97c58',8);building.roofSurface(new T.CylinderGeometry(.28,3,1.28,8),px,base+4.16,pz,'#748479',8,1.5);cyl(px,4.94,pz,.055,.19,.45,'#caac71',8)
  sign('Achievement Pavilion',px,2.83,pz+2.45,3.35,'#506e65')
  sign('CYA Quest  /  Third place',px,1.42,pz+.8,2.4,'#8d7456')
  base=villageRise(-24,23)
@@ -156,9 +159,9 @@ export function scenery(scene:T.Scene){
      if(!regions.has(key))regions.set(key,[]);regions.get(key)!.push(g);if(source!==g)source.dispose()
    }
  }
- const gradient=new T.DataTexture(new Uint8Array([106,166,209,245]),4,1,T.RedFormat)
- gradient.minFilter=gradient.magFilter=T.NearestFilter;gradient.needsUpdate=true
- const surface=new T.MeshToonMaterial({vertexColors:true,gradientMap:gradient});surface.addEventListener('dispose',()=>gradient.dispose())
+ building.flush()
+ forest.flush()
+ const surface=new T.MeshStandardMaterial({vertexColors:true,roughness:.91})
  const breeze={value:0}
  surface.onBeforeCompile=shader=>{
    shader.uniforms.breeze=breeze;shader.vertexShader='uniform float breeze;\n'+shader.vertexShader.replace('#include <begin_vertex>',`
